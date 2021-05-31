@@ -99,7 +99,7 @@
 ; ----------------------------------------------------------------------------
 ; $FC00
 .org $c000
-.include "sedoric.asm"
+.include "sedoricv3_stratoric_orix.asm"
 
 .org $fc00
 START_STRATORIC:
@@ -108,13 +108,27 @@ START_STRATORIC:
     cld                                     ; FC01 D8                       .
     ldx     #$FF                            ; FC02 A2 FF                    ..
     txs                                     ; FC04 9A                       .
+    ;jsr     load_disk
     lda     #$FF                            ; FC05 A9 FF                    ..
     sta     V1DDRA                          ; FC07 8D 03 03                 ...
     lda     #$F7                            ; FC0A A9 F7                    ..
     sta     V1DDRB                          ; FC0C 8D 02 03                 ...
+    ; JEDE : was lda #$17 ... sta V2DRA/V2DDRA
+.ifdef WITH_ORIX    
+    nop 
+    nop
+    
+    nop
+    nop 
+    nop 
+    nop
+    nop 
+    nop
+.else        
     lda     #$17                            ; FC0F A9 17                    ..
     sta     V2DRA                           ; FC11 8D 21 03                 .!.
     sta     V2DDRA                          ; FC14 8D 23 03                 .#.
+.endif    
     lda     #$7F                            ; FC17 A9 7F                    ..
     sta     V2IFR                           ; FC19 8D 2D 03                 .-.
     sta     V1IFR                           ; FC1C 8D 0D 03                 ...
@@ -233,7 +247,12 @@ COPY_C000_FROM_ROM_TO_C400_RAM_OVERLAY:
     sta     V2DRA                           ; 
     pla                                     ; FCD8 68                       h
     sta     (RESB),y                        ; store into $c400 in overlay ram
-    lda     #$07                            ; bank 7
+    ; JEDE : was lda #$07 before
+.ifdef WITH_ORIX      
+    lda     #$00                            ; bank 7   : 
+.else
+    lda     #$07
+.endif    
     sta     V2DRA                           ; switch to stratoric bank
     iny                                     ; 
     bne     COPY_C000_FROM_ROM_TO_C400_RAM_OVERLAY; loop :)
@@ -336,7 +355,7 @@ LFD65:
         asl                                    ; FD84 0A                       .
 ; $FD86
 str_STRATORIC:
-        .byte   $94                             ; FD85 94                       .
+        .byte   $91                             ; FD85 94                       .
 .ifdef ORIX
         .byte   "SEDSD v2020.4 "
         .res 1
@@ -344,10 +363,10 @@ str_STRATORIC:
         .res    12+6+3+4
 .else
 
-        .byte   "STRATORIC V4.0 "               ; FD86 53 54 52 41 54 4F 52 49  STRATORI
+        .byte   "STRATORIC V3.0 "               ; FD86 53 54 52 41 54 4F 52 49  STRATORI
                                                 ; FD8E 43 20 56 34 2E 30 20     C V4.0 
         .byte   $90,$0D,$0A                     ; FD95 90 0D 0A                 ...
-        .byte   "` 1987 ORIC International"     ; FD98 60 20 31 39 38 37 20 4F  ` 1987 O
+        .byte   "` 1996 ORIC International"     ; FD98 60 20 31 39 38 37 20 4F  ` 1987 O
 .endif                                                ; FDA0 52 49 43 20 49 6E 74 65  RIC Inte
 
                                                 ; FDA8 72 6E 61 74 69 6F 6E 61  rnationa
@@ -419,11 +438,116 @@ INIT_VIA1:
 
 
 ; ----------------------------------------------------------------------------
-	
+.ifdef ORIX
+load_disk:
+    ; set mode
+
+    lda     #CH376_SET_USB_MODE ; $15
+    sta     CH376_COMMAND
+
+    lda     #CH376_SET_USB_MODE_CODE_SDCARD
+    sta     CH376_DATA	
+
+    ; mount
+
+
+
+    lda     #CH376_DISK_MOUNT
+    sta     CH376_COMMAND
+    jsr     _ch376_wait_response_sedsd
+	cmp 	#CH376_USB_INT_SUCCESS
+	beq 	ok
+
+    rts
+
+ok:
+    lda     #CH376_SET_FILE_NAME        ;$2f
+    sta     CH376_COMMAND
+    lda     #'/'
+    sta     CH376_DATA
+
+    lda     #$00
+    sta     CH376_DATA
+    
+    jsr     _ch376_file_open
+
+    lda     #CH376_SET_FILE_NAME        ;$2f
+    sta     CH376_COMMAND
+    ldx     #$00
+loop:	
+    lda     diskname,x      
+    beq     end                         ; we reached 0 value
+    cmp     #'a'                        ; 'a'
+    bcc     skip
+    cmp     #$7B                        ; 'z'
+    bcs     skip
+    sbc     #$1F
+skip:
+   ; sta $bb80,x
+    sta     CH376_DATA
+    inx
+    cpx     #13                         ; because we don't manage longfilename shortname =13 8+3 and dot and \0
+    bne     loop
+    lda     #$00
+end:
+    sta     CH376_DATA
+    jsr     _ch376_file_open
+    cmp     #CH376_ERR_MISS_FILE
+    bne     found
+found:
+
+    rts
+
+.proc _ch376_file_open
+
+    lda #CH376_FILE_OPEN
+    sta CH376_COMMAND
+    jmp _ch376_wait_response_sedsd
+
+.endproc
+
+
+.proc _ch376_wait_response_sedsd
+
+; 1 return 1 if usb controller does not respond
+; else A contains answer of the controller
+    ldy     #$FF
+loop3:
+    ldx     #$FF ; merci de laisser une valeur importante car parfois en mode non debug, le controleur ne répond pas tout de suite
+@loop:
+    lda     CH376_COMMAND
+    and     #%10000000
+    cmp     #128
+    bne     no_error
+    dex
+    bne     @loop
+    dey
+    bne     loop3
+	; error is here
+    lda     #$01 
+    rts
+
+no_error:
+
+    lda     #CH376_GET_STATUS
+    sta     CH376_COMMAND
+    lda     CH376_DATA
+    rts
+
+.endproc    
+
+
+diskname:
+.asciiz "sedoric.dsk"  
+  .res     $FFFA-*
+  .org     $FFFA
+
+
+.else	
     .res 229,$ff
     .byte $00,$FC ; Dunno why there is that :/
     .res 252,$ff
-    
+.endif    
 ; ----------------------------------------------------------------------------
 NMI_VECTOR:
     .byt $ff,$ff
@@ -435,4 +559,4 @@ RESET_VECTOR:
 IRQ_VECTOR:
     .byte   $FF                             ; FFFE FF                       .
 LFFFF:
-.byte   $FF                             ; FFFF FF        
+    .byte   $FF                             ; FFFF FF        
