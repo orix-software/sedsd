@@ -436,11 +436,11 @@ LC527:
 
         lda     #$14                            ; Read track 20 FIXME
         ldy     #$01                            ; first sector  FIXME
-
-      ;  jmp     skiptest
-
+;.ifdef WITH_DSK_FORMAT
+ ;      jmp     start_again
+;.else 
         jsr     _SEDORIC_READ_SECTOR_TRACK               ; C52B 20 5D DA                  ]. 
-
+;.endif
         ldx     #$08                            ; C52E A2 08                    ..
 .proc tmp4	
 loop
@@ -481,6 +481,7 @@ loop:
 SEDORIC_INTERPRET_ATMOS	
         lda     #$3A                            ; C554 A9 3A                    .:
         sta     $35                             ; C556 85 35                    .5
+start_again:        
         jsr     LD206                           ; C558 20 06 D2                  .. 
         lda     #$BD                            ; C55B A9 BD                    .. c4bd interpreteur atmos
         ldy     #$C4                            ; C55D A0 C4                    .. 
@@ -505,14 +506,14 @@ LC589
 
 ; This part is maybe never called as "sedoric à nu" said	FIXME Free memory	
 LC599
-        jmp _SEDORIC_XAFSC
+        jmp     _SEDORIC_XAFSC
         rts
-        lda $c5ae
-        ldx $c5af
-        sta SEDORIC_TRACK
-        stx SEDORIC_SECTOR
-        lda $c5b0
-        bne LC589+18 ; Not useful
+        lda     $c5ae
+        ldx     $c5af
+        sta     SEDORIC_TRACK
+        stx     SEDORIC_SECTOR
+        lda     $c5b0
+        bne     LC589+18 ; Not useful
         .byte   $27,$09 ; C1A8 C0 AD B0 C5 D0 DB 27 09  ......'.
         .byte   $1A
 ; end of free memory and not used code
@@ -691,7 +692,7 @@ TOKEN_INTIALS_TABLE_A:
         .byte   "CCENT"                         ; C9E8 43 43 45 4E 54           CCENT
         .byte   $00                             ; C9ED 00                       .
 .else
-        .byte   "PPEND" ;FIXME append
+        .byte   "PPEND" 
         .byte   $00
         .byte   "ZERTY"                         ; C9E2 5A 45 52 54 59           ZERTY
         .byte   $00                             ; C9E7 00                       .                             
@@ -701,7 +702,7 @@ TOKEN_INTIALS_TABLE_A:
 ;        .byte   $00                             ; C9E7 00                       .
 .ifdef WITH_STRATORIC4 
 .else
-         .byte   "CCENT"                         ; C9E8 43 43 45 4E 54           CCENT FIXME
+         .byte   "CCENT"                         ; C9E8 43 43 45 4E 54           CCENT 
          .byte   $00                             ; C9ED 00                       .
 .endif        
       
@@ -1001,7 +1002,7 @@ LCBBD:  .byte   $00                             ; CBBD 00                       
         .byt    $18 ; CBC6 07 23 CA 0D 0B 57 CA 18  .#...W..
         .byte   $07
 ; ***************************************************************************************** F COMMANDS TABLE						
-        .byt    <TOKEN_INTIALS_TABLE_F,>TOKEN_INTIALS_TABLE_F  ;  $ca74 FIXME
+        .byt    <TOKEN_INTIALS_TABLE_F,>TOKEN_INTIALS_TABLE_F  ;  $ca74
         .byt    $1F,$02
 ; ***************************************************************************************** G COMMANDS TABLE						
         .byt    $CC,$CC,$21 ; No commands
@@ -1244,10 +1245,10 @@ letter_A_commands:
 .else
     ; $fe06
         ; .byt  <(SEDORIC_COMMAND_APPEND-1),>(SEDORIC_COMMAND_APPEND-1)
+        .word $fe06 ; FIXME
         .word $fe06
-        .word $fe06
-        .word $ebdd
-        .word $EB90 ; FIXME ACCENT
+        .word LEBDD
+        .word LEB90 ; FIXME ACCENT
         ;.byt  <(SEDORIC_COMMAND_AZERTY-1),>(SEDORIC_COMMAND_AZERTY-1)
         .word $F0DD
         .word $F150
@@ -1790,11 +1791,11 @@ SEDORIC_TEST_TRACK_UNDER_HEAD:
         pha                                     ; D0ED 48                       H
         lda     SEDORIC_RWBUF+1                 ; D0EE AD 04 C0                 ...
         pha                                     ; D0F1 48                       H
-        lda     #<SEDORIC_HEADER_BUFFER                            ; D0F2 A9 60                    .` FIXME
-        ldy     #>SEDORIC_HEADER_BUFFER                            ; D0F4 A0 C0                    .. FIXME
+        lda     #<SEDORIC_HEADER_BUFFER                            ; D0F2 A9 60                    .` 
+        ldy     #>SEDORIC_HEADER_BUFFER                            ; D0F4 A0 C0                    .. 
         sta     SEDORIC_RWBUF                   ; D0F6 8D 03 C0                 ...
-        sty     SEDORIC_RWBUF+1                 ; D0F9 8C 04 C0                 ... FIXME
-        lda     SEDORIC_XRWTS_RETRY             ; D0FC AD 06 C0                 ... FIXME
+        sty     SEDORIC_RWBUF+1                 ; D0F9 8C 04 C0                 ... 
+        lda     SEDORIC_XRWTS_RETRY             ; D0FC AD 06 C0                 ... 
         ldx     #>SEDORIC_TRACK                            ; D0FF A2 C0                    .. commande  Read  Address  pour  le  FDC:  cherche  un  en-tête  de  secteur quelconque
         ldy     #<SEDORIC_TRACK                            ; D101 A0 01                    ..  une seule tentative (on fait quand même 5 fois le tour de la disquette...)
         jsr     LCFEC                           ; D103 20 EC CF                  ..
@@ -1871,22 +1872,23 @@ SEDORIC_SHIFT_BLOCK_MEMORY_UP:
         jsr     SEDORIC_XROM                    ; D15C 20 D8 D5                  ..
 ; adresse ROM 1.0 adresse ROM 1.1
 adress_return:
+; FIXME
         .byte   $F8,$C3,$F4,$C3                 ; D15F F8 C3 F4 C3              ....
 ; ----------------------------------------------------------------------------
         rts     
-; FIXME
+
         jsr SEDORIC_XROM
-        ;.byt   $20,$D8,$D5
+; FIXME       
         .byte $48 ; CD60 C3 F4 C3 60 20 D8 D5 48  ...` ..H
         .byte   $C4,$44,$C4,$60
         ldx     #$4D
-        ;$A2,$4D
         .byte $2C
 
 SEDORIC_DISPLAY_TYPE_MISMATCH:
         lda     #$A3                            ; D16F A2 A3                    ..
         jsr     SEDORIC_XROM                    ; D171 20 D8 D5                  ..
 ; adresse ROM 1.0 adresse ROM 1.1
+; FIXME
         .byte   $85,$C4,$7E,$C4                 ; D174 85 C4 7E C4              ..~.
 
 ; Réinitialise la pile, affiche ' ERROR' et retourne au 'Ready'
@@ -2268,11 +2270,11 @@ LD475:  lda     #$0C                            ; D475 A9 0C                    
 LD475:  lda     #$0C                            ; D475 A9 0C                    ..
         sta     SEDORIC_TRAV0                   ; D477 85 F2                    ..
       
-        jsr     $D5B5                           ; D47B 20 B5 D5                  .. FIXME
+        jsr     LD5B5                           ; D47B 20 B5 D5                  .. 
         beq     *+5
     
 .endif        
-        jmp     $d503  ; FIXME
+        jmp     LD503  
 ; ----------------------------------------------------------------------------
 LD481:  cmp     #$2C                            ; D481 C9 2C                    .,
         beq     LD475                           ; D483 F0 F0                    ..
@@ -2391,7 +2393,7 @@ LD553:  pla                                     ; D553 68                       
         sta     BASIC11_TXTPTR                             ; D557 85 E9                    ..
 LD559:  lda     SEDORIC_BUFNOM_EXT                           ; D559 AD 32 C0                 .2.
         cmp     #$20                            ; D55C C9 20                    . 
-	      bne     LD503                           ; D55E D0 A3                    .. 
+	    bne     LD503                           ; D55E D0 A3                    .. 
         ldx     #$00                            ; D560 A2 00                    ..
         jsr     SEDORIC_COPY_NAME_AND_EXT_IN_BUFNOM; D562 20 4A D3               J.
         beq     LD503                           ; D565 F0 9C                    ..
@@ -2660,7 +2662,7 @@ LD734:  txa                                     ; D734 8A                       
         sbc     #$19                            ; D735 E9 19                    ..
         tax                                     ; D737 AA                       .
         jsr     LD35C                           ; D738 20 5C D3                  \.
-LD73B:  jmp     SEDORIC_INIT_STACK_DISPLAY_ERROR_AND_GOTO_READY; D73B 4C 78 D1  Lx.		
+LD73B:  jmp     SEDORIC_INIT_STACK_DISPLAY_ERROR_AND_GOTO_READY ; D73B 4C 78 D1  Lx.		
 
 XCURON: sec                                     ; D73E 38                       8
         .byte   $24                             ; D73F 24                       $
@@ -2774,8 +2776,8 @@ LD7ED:  ldx     #$24                            ; D7ED A2 24                    
         ldy     #$00                            ; D7EF A0 00                    ..
         .byte   $2C                             ; D7F1 2C                       ,
 LD7F2:  ldx     #$02                            ; D7F2 A2 02                    ..
-        .byt 	  $2c
-        ldx 	  #$08
+        .byt    $2c
+        ldx     #$08
         .byte   $2C                             ; D7F7 2C                       ,
       
 
@@ -2824,9 +2826,9 @@ LD82C:  lda     (SEDORIC_ADRESS_SAVE_TXTPTR),y                         ; D82C B1
 ; ----------------------------------------------------------------------------
 LD83A: 
 .ifdef WITH_STRATORIC4
-     jsr     LEA1E                           ; D83A 20 1E EA                  ..
+        jsr     LEA1E                           ; D83A 20 1E EA                  ..
 .else
-      sta $300
+        sta     $300
 
 .endif     
         lda     #$08                            ; D83D A9 08                    ..
@@ -3095,56 +3097,56 @@ LDA30:  rol                                    ; DA30 2A                       *
 	        
 .else         
 LD9B0:  
-        jsr LD27F  ; $d27f ; FIXME
-        cpx #$10
-        bcs  LD9F5 ;$D9F5  ; FIXME
+        jsr     LD27F  
+        cpx     #$10
+        bcs     LD9F5 
         txa
         asl
         asl
         asl
         asl
         pha 
-        jsr $d22C ; FIXME
-        jsr $d224 ; FIXME
-        jsr $d274 ; FIXME
-        cmp #$11
-        bcs LD9F8
+        jsr     LD22C 
+        jsr     LD224
+        jsr     LD274
+        cmp     #$11
+        bcs     LD9F8
         tay
-        beq LD9F8
+        beq     LD9F8
         pla
         tax
-        lda #$10
-        sta $f2
-        lda #$20
+        lda     #$10
+        sta     $f2
+        lda     #$20
 LD9D5:        
-        sta $c880,x ; FIXME 
+        sta     $c880,x ; FIXME 
         inx 
-        dec $f2 
-        bne LD9D5; 
+        dec     $f2 
+        bne     LD9D5; 
        
         dey
         dex 
-        lda ($91),y
-        ora #$80
-        sta $c880,x
+        lda     ($91),y
+        ora     #$80
+        sta     $c880,x ; FIXME
 Ld9e6:         
         dex
         dey
-        bmi $da1f ; FIXME
-        lda ($91),y
-        beq LD9F5 
-        bmi  LD9F5
-        sta $c880,x ; FIXME 
-        bcc Ld9e6 
+        bmi     LDA1F 
+        lda     ($91),y
+        beq     LD9F5 
+        bmi     LD9F5
+        sta     $c880,x ; FIXME 
+        bcc     Ld9e6 
 LD9F5:        
-        ldx #$08
-        .byte $2C
+        ldx     #$08
+        .byte   $2C
 LD9F8:        
         ldx #$12
-        jmp $d67e ; FIXME
+        jmp     $d67e ; FIXME
         
 LD9FD:
-    jsr $D27F ; FIXME
+    jsr LD27F ; FIXME
     lsr $2DF ; FIXME
     jsr $d302; FIXME
     bpl $DA03; FIXME
@@ -3159,9 +3161,10 @@ LD9FD:
     tay 
     txa
     sta $c800,y
+LDA1F:    
     rts
 LDA20:
-    jsr $D27F
+    jsr LD27F
     php
     sei
     txa
@@ -4301,14 +4304,11 @@ _SEDORIC_XNOMDE:  sec                                     ; E266 38             
         jmp     SEDORIC_DISPLAY_NOT_ALLOWED                           ; E274 4C F3 E5                 L..
 LE277:  jsr     LE5DC                           ; E277 20 DC E5                  ..         		 
 .else
-        lda $c204 ; FIXME
-        bne $e277 ; FIXME
-        dec $c205 ; FIXME
-        dec $c204 ; FIXME
-       ; lda $c30C,x , FIXME
-
- LE277:     
-
+        lda     $c204 ; FIXME
+        bne     LE277 
+        dec     $c205 ; FIXME
+LE277:
+        dec     $c204 ; FIXME
 .endif
 
 ; ----------------------------------------------------------------------------
@@ -4454,19 +4454,20 @@ LE37C:  lda     SEDORIC_ERRVEC+1,y              ; E37C B9 1E C0                 
 .ifdef WITH_STRATORIC4        
         bne     LE39B                           ; E38E D0 0B                    ..
 .else
-        bne     $E399 ; FIXME
+        bne     LE399 
 .endif         
         beq     LE3C5                           ; E390 F0 33                    .3
 
 LE392:  sei                                     ; E392 78                       x
         jsr     LE41F                           ; E393 20 1F E4                  ..
         jsr     LDB41                           ; E396 20 41 DB                  A.
+LE399:        
         beq     LE3C2                           ; E399 F0 27                    .'
 LE39B:  
 .ifdef WITH_STRATORIC4
         jsr     LE583                           ; E39B 20 83 E5                  .. 
 .else
-        jsr     $e322 ; FIXME
+        jsr     LE322 
 .endif         
         jsr     LDB41                           ; E39E 20 41 DB                  A.
         beq     LE3BF                           ; E3A1 F0 1C                    ..
@@ -4475,7 +4476,7 @@ LE39B:
 .ifdef WITH_STRATORIC4        
         jsr     LE583                           ; E3A9 20 83 E5                  ..
 .else
-        jsr     $e322 ; FIXME
+        jsr     LE322  
 .endif        
         cli                                     ; E3AC 58                       X
         jsr     SEDORIC_KEYBOARD_WAIT           ; E3AD 20 02 D3                  ..
@@ -4513,8 +4514,7 @@ LE3E6:  jsr     _SEDORIC_XAFCAR                          ; E3E6 20 2A D6        
 
         ldx     #$01                            ; E3F1 A2 01                    ..
 
-       ; ldx     #$        
-        jsr     LD750                           ; E3F3 20 50 D7                  P. 
+       jsr     LD750                           ; E3F3 20 50 D7                  P. 
         lda     #$2F                            ; E3F6 A9 2F                    ./
         jsr     _SEDORIC_XAFCAR                          ; E3F8 20 2A D6                  *.
         lda     SEDORIC_BUF2+7                  ; E3FB AD 07 C2                 ...
@@ -4570,7 +4570,7 @@ LE44C:  ror     SEDORIC_FLAG_PARAM                           ; E44C 6E 72 C0    
 .ifdef WITH_STRATORIC4
         jsr     LD9B0                           ; E44F 20 B0 D9                  ..
 .else
-        jsr     $DB2D ; FIXME
+        jsr     LDB2D ; FIXME
 .endif         
         bne     LE457                           ; E452 D0 03                    ..
         jmp     LE0DD                           ; E454 4C DD E0                 L..
@@ -4806,7 +4806,7 @@ SEDORIC_DISPLAY_NOT_ALLOWED
 LE5FB:  rts  
 
 .else
-        jsr $d451 ; FIXME
+        jsr _SEDORIC_XNFA 
         ldx #$0b
 LE53C:        
         lda $c029,x ; FIXME
@@ -4816,8 +4816,8 @@ LE53C:
         lda $c028 ; FIXME
         pha
         lda #$c3
-        jsr $d22e; FIXME
-        jsr $d451 ;FIXME
+        jsr LD22E; FIXME
+        jsr _SEDORIC_XNFA 
         pla 
         cmp $c028 ; FIXME
         bne LE56A
@@ -4828,19 +4828,19 @@ LE53C:
         cmp #$3F
         beq LE56D ; FIXME
         cpy #$3F
-        bne $e571 ; FIXME
+        bne LE571 ; FIXME
 LE56A:        
-        jmp $d5AC ; FIXME
+        jmp LD5AC ; FIXME
 LE56D:        
         cpy #$3F 
         bne LE56A
 LE571:
         tya
-        sta $c110,x 
+        sta $c110,x ; FIXME
         dex 
         bpl $e559 ; FIXME
 
-        jsr $DB2D ; FIXME
+        jsr LDB2D
         bne $e585 ; FIXME
         jmp $e0DD ; FIXME
         jsr $db41 ; FIXME
@@ -5109,34 +5109,32 @@ SEDORIC_COMMAND_FIXME
         ldy     #$06
         .byt    $2c
 SEDORIC_COMMAND_FIXME2		
-        ldy #$09
-        .byt  $2c
+        ldy     #$09
+        .byt    $2c
 SEDORIC_COMMAND_FIXME3		
-        ldy #$0c
-        .byt  $2c
+        ldy     #$0c
+        .byt    $2c
 SEDORIC_COMMAND_FIXME4		
-        ldy #$0f	
-        .byt  $2c
+        ldy     #$0f	
+        .byt    $2c
 SEDORIC_COMMAND_FIXME5	
 ;free	
-        ldy #$12			
+        ldy     #$12			
         
         ldx     #$65                            ; E75A A2 65                    .e
         jmp     LF15E                           ; E75C 4C 5E F1                 L^.
 
-
-
 LE770
-        ldy #$03
-        .byt $2c
+        ldy     #$03
+        .byt    $2c
 LE773	
-        ldy #$06
-        .byt $2c
+        ldy     #$06
+        .byt    $2c
 LE776	
-        ldy #$09
-        .byt $2c
+        ldy     #$09
+        .byt    $2c
 LE779	
-        ldy #$0c
+        ldy     #$0c
 ; free space	
         
 
@@ -5145,56 +5143,62 @@ LE78A:  ldx     #$6A                            ; E78A A2 6A                    
 .else
 LE740:
     php 
-    ldx #$00
+    ldx     #$00
     plp 
-    beq $e74E ; FIXME
-    cmp #$8F 
-    bne $e74E ; FIXME
-    jsr $d398 ; FIXME 
+    beq     LE74E  ; FIXME
+    cmp     #$8F 
+    bne     LE74E ; FIXME
+    jsr     _SEDORIC_XCRGET ; FIXME 
 
-    inx 
-    txa 
+    inx
+LE74E:     
+    txa
+
     pha 
-    bit $c024 
-    bmi $e757 ; FIXME 
+    bit     $c024 
+    bmi     LE757 
     inx 
-    inx 
-    lda $cd0c,x ; FIXME
+    inx
+LE757:     
+    lda     $cd0c,x ; FIXME
     tax 
-    jsr $d39E ; fixme
-    beq $e763 ; FIXME
-    jsr $d27F ; FIXME
-    bit $c024
-    bmi $e77b ; FOXME
+    jsr     $d39E ; fixme
+    beq     LE763
+
+    jsr     LD27F
+LE763:    
+    bit     $c024
+    bmi     LE77B
+
     pla 
-    stx $31 
+    stx     $31 
     txa 
 
     sec 
 LE76D:    
-    sbc #$08 
-    bcs LE76D
-    eor #$FF
-    sbc #$06
+    sbc     #$08 
+    bcs     LE76D
+    eor     #$FF
+    sbc     #$06
     clc 
-    adc $31 
-    sta $32
+    adc     $31 
+    sta     $32
     rts 
 LE77B:
-    bit $2F1
-    bpl LE78A ;
+    bit     $2F1
+    bpl     LE78A ;
     pla 
-    bne $e769 ; FIXME
+    bne     $e769 ; FIXME
     
-    stx $257
-    sta $259 
+    stx     $257
+    sta     $259 
     rts 
 LE78A:    
     pla
-    beq $e769 ; FIXME
-    stx $256
-    lda #$00
-    sta $258
+    beq     $e769 ; FIXME
+    stx     $256
+    lda     #$00
+    sta     $258
     rts
 
   
@@ -5931,58 +5935,60 @@ LEB22:  jmp     (SEDORIC_EXEVEC+1)              ; EB22 6C F0 04                 
         .byte   $EA
 .else 
 LEB25:
-        ldy #$03 
+        ldy     #$03 
 LEB27:        
-        lda $c03E,y ; FIXME
-        sta $c042,y 
+        lda     $c03E,y ; FIXME
+        sta     $c042,y 
         dey 
         bpl LEB27
-        jsr $d39E ; fixme
-        beq $eb90 ; FIXME
-        cmp #$80
-        bne $eb72 ; FIXME
-        jsr $d398 ; FIXME
+        jsr     $d39E ; fixme
+        beq     LEB90
+        cmp     #$80
+        bne     LEB72
+        jsr     _SEDORIC_XCRGET
 
-        ldx $9A ; FIXME
-        lda $9B ; FIXME
-        stx $ce 
-        sta $cf 
-        ldy #$00 
-        lda ($ce),y 
+        ldx     $9A ; FIXME
+        lda     $9B ; FIXME
+        stx     $ce 
+        sta     $cf 
+        ldy     #$00 
+        lda     ($ce),y 
       ;  beq $eb5e ; FIXME 
         tax 
         iny 
-        lda ($ce),y
-        beq $eb5e ; FIXME 
+        lda     ($ce),y
+        beq     $eb5e ; FIXME 
         pha 
         iny 
-        lda ($ce),y
-        sta $c042 
+        lda     ($ce),y
+        sta     $c042 
         iny 
-        lda ($ce),y
-        sta $c043
+        lda     ($ce),y
+        sta     $c043 
         pla 
-        bne $eb40 
+        bne     $eb40 
         clc 
-        lda $c042 
-        adc $c044 
-        sta $c042 
-        lda $c043 
-        adc $c045 
-        sta $c043 
+        lda     $c042 
+        adc     $c044 
+        sta     $c042 
+        lda     $c043 
+        adc     $c045 
+        sta     $c043 
         rts 
 LEB72:
-        cmp #$2C         
-        beq $EB84 ; FIXME
-        jsr $D2FA  ; FIXME
-        sta $c043 
-        sty $c042
-        jsr $d39E ; FIXME
-        beq $eb90 ; FIXME
-        jsr $d22C ; FIXME
-        jsr $d2FA ; FIXME 
-        sta $c045  ; FIXME
-        sty $c044 ; FIXME
+        cmp     #$2C         
+        beq     LEB84
+        jsr     $D2FA  ; FIXME
+        sta     $c043 
+        sty     $c042
+        jsr     $d39E ; FIXME
+        beq     LEB90
+LEB84:
+        jsr     LD22C 
+        jsr     $d2FA ; FIXME 
+        sta     $c045  ; FIXME
+        sty     $c044 ; FIXME
+LEB90:        
         rts 
 .endif         
 
@@ -6072,20 +6078,17 @@ SEDORIC_COMMAND_LBRACKET:
         jmp     SEDORIC_EXERAM                  ; EC14 4C EC 04                 L..		
 
 XSTATUS: 
-        lda #$10 
-        ldy #$07 
-        sta $26b
-        sty $26c 
-        lda #$0f 
-        sta $26a 
-        lda #$0C 
-        jsr $d62A ; FIXME
-        jmp $eba3  ; FIXME
+        lda     #$10 
+        ldy     #$07 
+        sta     $26b
+        sty     $26c 
+        lda     #$0f 
+        sta     $26a 
+        lda     #$0C 
+        jsr     _SEDORIC_XAFCAR
+        jmp     SEDORIC_XCHAR  
 
-;        .byt     $A9 ; E810 F1 04 68 28 4C EC 04 A9  ..h(L...
-        ;.byte   $10,$A0,$07,$8D,$6B,$02,$8C,$6C ; E818 10 A0 07 8D 6B 02 8C 6C  ....k..l
-        ;.byte   $02,$A9,$0F,$8D,$6A,$02,$A9,$0C ; E820 02 A9 0F 8D 6A 02 A9 0C  ....j...
-        ;.byte   $20,$2A,$D6,$4C,$A3,$EB ; FIXME
+
 
 ; ----------------------------------------------------------------------------
 SEDORIC_COMMAND_INSTR:
@@ -6874,10 +6877,10 @@ LF16D:
         jsr     LD36C                           ; F174 20 6C D3                  l.
         nop                                     ; F177 EA                       .
 .else
-    ldx #$0c 
-    jsr $d36C ; FIXME
-    lda $c00A 
-    sta $c000 
+        ldx     #$0c 
+        jsr     LD36C
+        lda     $c00A 
+        sta     $c000 
     
 .endif         
         jsr     LD648                           ; F178 20 48 D6                  H.
@@ -7422,9 +7425,9 @@ LF511:  dec     SEDORIC_TRAV2                   ; F511 C6 F4                    
         beq     LF552                           ; F524 F0 2C                    .,
 LF526: 
 .ifdef WITH_STRATORIC4
-         bvc     LF54B                           ; F526 50 23                    P# ; FIXME offset 3120 dans le fichier
+        bvc     LF54B                           ; F526 50 23                    P# ; FIXME offset 3120 dans le fichier
 .else
-        bvc  $f548 ; FIXME
+        bvc     LF548
 .endif 
         ldy     #$00                            ; F528 A0 00                    ..
         lda     (SEDORIC_TRAV0),y               ; F52A B1 F2                    ..
@@ -8437,7 +8440,7 @@ LFC48:
 .ifdef WITH_STRATORIC4
         jsr     LD22C                           ; FC48 20 2C D2                  ,.
 .else
-        jsr     $D22E ; FIXME
+        jsr     LD22E
 .endif        
         bne     LFBD6                           ; FC4B D0 89                    ..
         lda     $0A                             ; FC4D A5 0A                    ..
@@ -8810,11 +8813,9 @@ LFEF8:  jsr     LFF1B                           ; FEF8 20 1B FF                 
 ; ----------------------------------------------------------------------------
 LFF00:  
 .ifdef WITH_STRATORIC4
-        brk                                     ; FF00 00                       . FIXME BUG
-        brk                                     ; FF01 00                       . FIXME BUG
-        .byte   $F4                             ; FF02 F4                       . FIXME BUG
+        .byte     $00,$00,$f4
 .else        
-        jsr $f4a8 ; FIXME
+        jsr     LF4A8
 .endif        
         
         lda     #$80                            ; FF03 A9 80                    .. 
